@@ -1,6 +1,8 @@
 #! /usr/bin/env python3
 
+from scapy.all import *
 from datetime import date
+from base64 import b64decode
 from optparse import OptionParser
 from colorama import Fore, Back, Style
 from time import strftime, localtime, time
@@ -52,7 +54,77 @@ if __name__ == "__main__":
         display('-', "Please Provide a List of IP Addresses or Network Packet Capture File")
         exit(0)
     elif arguments.capture_file:
-        pass
+        sip_devices = {}
+        sip_authentications = {}
+        for packet_capture_file in arguments.capture_file.split(','):
+            try:
+                packets = rdpcap(packet_capture_file)
+                for network_packet in packets:
+                    try:
+                        if Raw in network_packet and "SIP" in network_packet[Raw].load.decode():
+                            device_id = tuple(sorted([network_packet[IP].src, network_packet[IP].dst, str(network_packet[TCP].sport), str(network_packet[TCP].dport)])) if TCP in network_packet else tuple(sorted([network_packet[IP].src, network_packet[IP].dst, str(network_packet[UDP].sport), str(network_packet[UDP].dport)]))
+                            if "200 OK" in network_packet[Raw].load.decode() and device_id in sip_authentications:
+                                sip_devices[device_id] = sip_authentications[device_id]
+                            if "Authorization" in network_packet[Raw].load.decode():
+                                raw_data = network_packet[Raw].load.decode().split('\n')
+                                method = raw_data[0].split(' ')[0]
+                                for line in raw_data:
+                                    if "Authorization" in line and "digest" in line.lower():
+                                        line = line[len("Authorization: Digest "):]
+                                        sip_authentications[device_id] = {parameter.split('=')[0]: ' '.join(parameter.split('=')[1:]).replace('"', '') for parameter in line.split(', ')}
+                                        sip_authentications[device_id]["method"] = method
+                                        sip_authentications[device_id]["authorization"] = "DIGEST"
+                                        sip_authentications[device_id]["device"] = network_packet[IP].dst
+                                        sip_authentications[device_id]["source"] = network_packet[IP].src
+                                        sip_authentications[device_id]["device_port"] = network_packet[TCP].dport if TCP in network_packet else network_packet[UDP].dport
+                                        sip_authentications[device_id]["source_port"] = network_packet[TCP].sport if TCP in network_packet else network_packet[UDP].sport
+                                        break
+                                    elif "Authorization" in line:
+                                        authorization = "BASIC"
+                                        base64 = b64decode(line[len("Authorization: Basic "):].encode()).decode()
+                                        username, password = base64.split(':')[0], ':'.join(base64.split(':')[1:])
+                                        sip_authentications[device_id] = {
+                                            "username": username,
+                                            "password": password,
+                                            "method": method,
+                                            "authorization": authorization,
+                                            "device": network_packet[IP].dst,
+                                            "source": network_packet[IP].src,
+                                            "device_port": network_packet[TCP].dport if TCP in network_packet else network_packet[UDP].dport,
+                                            "source_port": network_packet[TCP].sport if TCP in network_packet else network_packet[UDP].sport
+                                        }
+                                        break
+                    except:
+                        pass
+            except Exception as error:
+                display('-', f"Error Occured while reading Packet Capture File {Back.MAGENTA}{packet_capture_file}{Back.RESET} => {Back.YELLOW}{error}{Back.RESET}")
+        del sip_authentications
+        sip_devices = list(sip_devices.values())
+        successful_logins = []
+        for sip_device in sip_devices:
+            print(Fore.CYAN + '-'*100 + Fore.RESET)
+            display('*', f"RTSP Device => {Back.MAGENTA}{sip_device['device']}{Back.RESET}")
+            display('*', f"RTSP Client => {Back.MAGENTA}{sip_device['source']}{Back.RESET}")
+            display('*', f"RTSP Device Port => {Back.MAGENTA}{sip_device['device_port']}{Back.RESET}")
+            display('*', f"RTSP Client Port => {Back.MAGENTA}{sip_device['source_port']}{Back.RESET}")
+            display('+', f"Method => {Back.MAGENTA}{sip_device['method']}{Back.RESET}")
+            display('+', f"Authorization => {Back.MAGENTA}{sip_device['authorization']}{Back.RESET}")
+            if sip_device['authorization'] == "DIGEST":
+                display(':', f"\t* Username = {Back.MAGENTA}{sip_device['username']}{Back.RESET}")
+                display(':', f"\t* Realm = {Back.MAGENTA}{sip_device['realm']}{Back.RESET}")
+                display(':', f"\t* Nonce = {Back.MAGENTA}{sip_device['nonce']}{Back.RESET}")
+                display(':', f"\t* URI = {Back.MAGENTA}{sip_device['uri']}{Back.RESET}")
+                display(':', f"\t* Response = {Back.MAGENTA}{sip_device['response']}{Back.RESET}")
+                display(':', f"\t* Algorithm = {Back.MAGENTA}{sip_device['algorithm']}{Back.RESET}")
+                display(':', f"\t* CNonce = {Back.MAGENTA}{sip_device['cnonce']}{Back.RESET}")
+                display(':', f"\t* QOP = {Back.MAGENTA}{sip_device['qop']}{Back.RESET}")
+                display(':', f"\t* NC = {Back.MAGENTA}{sip_device['nc']}{Back.RESET}")
+                sip_device['nc'] = sip_device['nc'].strip()
+            else:
+                display(':', f"\t* Username = {Back.MAGENTA}{sip_device['username']}{Back.RESET}")
+                display(':', f"\t* Password = {Back.MAGENTA}{sip_device['password']}{Back.RESET}")
+                successful_logins.append({"ip": sip_device["device"], "user": sip_device["username"], "password": sip_device["password"]})
+            print(Fore.CYAN + '-'*100 + Fore.RESET)
     else:
         ips = []
         for ip_detail in arguments.ip.split(','):
