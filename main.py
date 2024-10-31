@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 from scapy.all import *
+from hashlib import md5
 from pickle import dump
 from datetime import date
 from base64 import b64decode
@@ -24,6 +25,11 @@ def get_arguments(*args):
     for arg in args:
         parser.add_option(arg[0], arg[1], dest=arg[2], help=arg[3])
     return parser.parse_args()[0]
+
+def calculateDigestResponse(username, password, realm, method, uri, nonce, cnonce, qop, nonce_count):
+    hash_1 = md5(f"{username}:{realm}:{password}".encode()).hexdigest()
+    hash_2 = md5(f"{method}:{uri}".encode()).hexdigest()
+    return md5(f"{hash_1}:{nonce}:{nonce_count}:{cnonce}:{qop}:{hash_2}".encode()).hexdigest()
 
 if __name__ == "__main__":
     arguments = get_arguments(('-i', "--ip", "ip", "File Name of List of IP Addresses (Seperated by ',', either File Name or IP itself)"),
