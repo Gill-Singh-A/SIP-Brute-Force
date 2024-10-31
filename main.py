@@ -196,3 +196,9 @@ if __name__ == "__main__":
         for user in arguments.user:
             for password in arguments.password:
                 details.extend([{"ip": ip, "user": user, "password": password} for ip in ips])
+    if len(successful_logins) > 0:
+        display(':', f"Dumping Successfully Authorized IP Addresses in file {Back.MAGENTA}{arguments.write}{Back.RESET}", start='\n')
+        with open(arguments.write, 'w') as file:
+            file.write("User,Password,IP\n")
+            file.write('\n'.join([f"{login['user']},{login['password']},{login['ip']}" for login in successful_logins]))
+        display('+', f"Dumped Successfully Authorized IP Addresses in file {Back.MAGENTA}{arguments.write}{Back.RESET}")
