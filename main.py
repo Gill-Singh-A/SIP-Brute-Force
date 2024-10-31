@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 from scapy.all import *
+from pickle import dump
 from datetime import date
 from base64 import b64decode
 from optparse import OptionParser
@@ -125,6 +126,9 @@ if __name__ == "__main__":
                 display(':', f"\t* Password = {Back.MAGENTA}{sip_device['password']}{Back.RESET}")
                 successful_logins.append({"ip": sip_device["device"], "user": sip_device["username"], "password": sip_device["password"]})
             print(Fore.CYAN + '-'*100 + Fore.RESET)
+        if arguments.capture_file_data:
+            with open(arguments.capture_file_data, 'wb') as file:
+                dump(sip_devices, file)
     else:
         ips = []
         for ip_detail in arguments.ip.split(','):
