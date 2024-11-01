@@ -69,8 +69,11 @@ if __name__ == "__main__":
             arguments.password = [password for password in arguments.password.split(',')]
         except OSError:
             arguments.password = [password for password in arguments.password.split(',')]
-        except:
-            display('-', f"Error Loading Passwords from File {Back.YELLOW}{arguments.password}{Back.RESET}")
+        except MemoryError:
+            display('-', f"File {Back.MAGENTA}{arguments.password}{Back.RESET} too big to load!")
+            exit(0)
+        except Exception as error:
+            display('-', f"Error Loading Passwords from File {Back.YELLOW}{arguments.password}{Back.RESET} => {Back.YELLOW}{error}{Back.RESET}")
             exit(0)
     if not arguments.ip and not arguments.capture_file:
         display('-', "Please Provide a List of IP Addresses or Network Packet Capture File")
