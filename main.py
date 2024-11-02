@@ -270,7 +270,7 @@ if __name__ == "__main__":
             display('-', f"Please Provide {Back.MAGENTA}Network Interface{Back.RESET} to use!")
             display('*', f"Network Interfaces Available => {Back.MAGENTA}{','.join(get_if_list())}{Back.RESET}")
             exit(0)
-        clinet_ip = get_if_addr(arguments.network_interface)
+        client_ip = get_if_addr(arguments.network_interface)
         if arguments.protocol == "TCP":
             protocol = "TCP"
         else:
@@ -292,14 +292,14 @@ if __name__ == "__main__":
         for ip in ips:
             for user, password in arguments.credentials:
                 brute_force_details.append({"ip": ip, "user": user, "password": password})
-        del arguments.credentails
+        del arguments.credentials
         total_brute_force_details = len(brute_force_details)
         brute_force_details_divisions = [brute_force_details[thread_index*total_brute_force_details//threads_number: (thread_index+1)*total_brute_force_details//threads_number] for thread_index in range(threads_number)]
         pool = Pool(threads_number)
         threads = []
         successful_logins = []
         for index, brute_force_details_division in enumerate(brute_force_details_divisions):
-            threads.append(pool.apply_async(loginHandler, (brute_force_details_division, )))
+            threads.append(pool.apply_async(loginHandler, (client_ip, brute_force_details_division, )))
         for thread in threads:
             successful_logins.extend(thread.get())
         pool.close()
