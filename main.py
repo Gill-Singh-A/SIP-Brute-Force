@@ -123,6 +123,7 @@ if __name__ == "__main__":
                               ('-S', "--server-port", "server_port", f"Server Port (Default={server_port})"),
                               ('-P', "--client-port", "client_port", f"Client Port (Default={client_port})"),
                               ('-t', "--protocol", "protocol", f"Protocol to Use (TCP/UDP, Default={protocol})"),
+                              ('-n', "--network-interface", "network_interface", f"Interface to use (Interfaces Available={','.join(get_if_list())})"),
                               ('-w', "--write", "write", "Name of the CSV File for the Successfully Logged In IPs to be dumped (default=current data and time)"))
     if not arguments.write:
         arguments.write = f"{date.today()} {strftime('%H_%M_%S', localtime())}.csv"
@@ -265,6 +266,11 @@ if __name__ == "__main__":
         pool.close()
         pool.join()
     else:
+        if arguments.network_interface not in get_if_list():
+            display('-', f"Please Provide {Back.MAGENTA}Network Interface{Back.RESET} to use!")
+            display('*', f"Network Interfaces Available => {Back.MAGENTA}{','.join(get_if_list())}{Back.RESET}")
+            exit(0)
+        clinet_ip = get_if_addr(arguments.network_interface)
         if arguments.protocol == "TCP":
             protocol = "TCP"
         else:
