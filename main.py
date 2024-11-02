@@ -288,6 +288,23 @@ if __name__ == "__main__":
             except Exception as error:
                 display('-', f"Error Loading IPs from File {Back.YELLOW}{arguments.ip}{Back.RESET} => {Back.YELLOW}{error}{Back.RESET}")
                 exit(0)
+        brute_force_details = []
+        for ip in ips:
+            for user, password in arguments.credentials:
+                brute_force_details.append({"ip": ip, "user": user, "password": password})
+        del arguments.credentails
+        total_brute_force_details = len(brute_force_details)
+        brute_force_details_divisions = [brute_force_details[thread_index*total_brute_force_details//threads_number: (thread_index+1)*total_brute_force_details//threads_number] for thread_index in range(threads_number)]
+        pool = Pool(threads_number)
+        threads = []
+        successful_logins = []
+        for index, brute_force_details_division in enumerate(brute_force_details_divisions):
+            threads.append(pool.apply_async(loginHandler, (brute_force_details_division, )))
+        for thread in threads:
+            successful_logins.extend(thread.get())
+        pool.close()
+        pool.join()
+    display(':', f"Successful Authorizations = {Back.MAGENTA}{len(successful_logins)}{Back.RESET}")
     if len(successful_logins) > 0:
         display(':', f"Dumping Successfully Authorized IP Addresses in file {Back.MAGENTA}{arguments.write}{Back.RESET}", start='\n')
         with open(arguments.write, 'w') as file:
