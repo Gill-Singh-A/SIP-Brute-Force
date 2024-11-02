@@ -102,6 +102,15 @@ def login(server_ip, client_ip, user, password):
     except Exception as error:
         t2 = time()
         return error, t2-t1
+def loginHandler(client_ip, details):
+    group_successful_logins = []
+    for detail in details:
+        login_status = login(detail["ip"], client_ip, detail["user"], detail["password"])
+        if login_status[0] == True:
+            group_successful_logins.append(detail)
+            with lock:
+                display('+', f"{Back.BLUE}{detail['user']}{Back.RESET}:{Back.CYAN}{detail['password']}{Back.RESET}@{Back.MAGENTA}{detail['ip']}{Back.RESET} => Access Granted")
+    return group_successful_logins
 
 if __name__ == "__main__":
     arguments = get_arguments(('-i', "--ip", "ip", "File Name of List of IP Addresses (Seperated by ',', either File Name or IP itself)"),
@@ -166,8 +175,6 @@ if __name__ == "__main__":
         server_port = int(arguments.server_port)
     if arguments.client_port:
         client_port = int(arguments.client_port)
-    if arguments.protocol == "TCP":
-        protocol = "TCP"
     if not arguments.ip and not arguments.capture_file:
         display('-', "Please Provide a List of IP Addresses or Network Packet Capture File")
         exit(0)
@@ -258,6 +265,10 @@ if __name__ == "__main__":
         pool.close()
         pool.join()
     else:
+        if arguments.protocol == "TCP":
+            protocol = "TCP"
+        else:
+            threads_number = 1
         ips = []
         for ip_detail in arguments.ip.split(','):
             try:
