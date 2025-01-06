@@ -146,9 +146,9 @@ if __name__ == "__main__":
             display(':', f"Setting Password to {Back.MAGENTA}Blank{Back.RESET}")
             arguments.password = ['']
         else:
-            display(':', f"Loading Passwords from File {Back.MAGENTA}{arguments.password}{Back.RESET}")
             try:
                 with open(arguments.password, 'rb') as file:
+                    display(':', f"Loading Passwords from File {Back.MAGENTA}{arguments.password}{Back.RESET}")
                     arguments.password = [password for password in file.read().decode(errors="ignore").split('\n') if password != '']
             except FileNotFoundError:
                 arguments.password = arguments.password.split(',')
@@ -179,7 +179,7 @@ if __name__ == "__main__":
     if not arguments.ip and not arguments.capture_file:
         display('-', "Please Provide a List of IP Addresses or Network Packet Capture File")
         exit(0)
-    elif arguments.capture_file:
+    elif arguments.capture_file and arguments.password:
         sip_devices = {}
         sip_authentications = {}
         for packet_capture_file in arguments.capture_file.split(','):
